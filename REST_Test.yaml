@@ -1,0 +1,17 @@
+input:
+  generate:
+    count: 1
+    interval: 1s
+    mapping: |
+      root = {
+        "description": "STARBUCKS STORE 123",
+        "amount": "12.34",
+        "date": "2026-02-17",
+        "country": "US",
+        "currency": "USD",
+        "mcc": "5814",
+        "bank_code": "WELLS",
+        "account_id": "acct-001",
+        "username": "pipelineuser001",
+        "authorization": "Bearer ${ZAFIN_ACCESS_TOKEN}"
+      }

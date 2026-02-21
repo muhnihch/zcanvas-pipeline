@@ -1,1 +1,8 @@
-hello
+input:
+  generate:
+    count: 1
+    interval: 1s
+    mapping: |
+      root = {"message":"hello-from-e2e"}
+output:
+  stdout: {}

@@ -1,0 +1,18 @@
+input:
+  kafka:
+    addresses: [ "localhost:9092" ]
+    topics: [ "input-topic" ]
+    consumer_group: "benthos-test"
+
+pipeline:
+  processors:
+    - mapping: |
+        root = {
+          "id": this.id,
+          "type": this.type,
+          "processed_at": now()
+        }
+
+output:
+  stdout:
+    codec: lines

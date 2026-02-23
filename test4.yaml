@@ -1,0 +1,19 @@
+input:
+  aws_s3:
+    bucket: "my-bucket"
+    prefix: "incoming/"
+    scanner:
+      to_the_end: true
+    delete_objects: false
+
+pipeline:
+  processors:
+    - bloblang: |
+        root = this
+        root.source = "s3"
+        root.processed_at = now()
+
+output:
+  kafka:
+    addresses: [ "kafka:9092" ]
+    topic: "normalized-events"

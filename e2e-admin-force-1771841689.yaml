@@ -1,0 +1,8 @@
+input:
+  generate:
+    count: 1
+    interval: 1s
+    mapping: |
+      root = {"message":"admin-button-e2e"}
+output:
+  stdout: {}

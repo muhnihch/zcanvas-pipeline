@@ -1,0 +1,7 @@
+input:
+  generate:
+    count: 1
+    interval: 1s
+    mapping: root = {"msg":"auto-commit-force-push"}
+output:
+  stdout: {}

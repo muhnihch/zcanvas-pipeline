@@ -1,0 +1,96 @@
+# HTTP -> validate/normalize -> dedupe -> Kafka
+# If invalid, send to DLQ topic. Also exposes Prometheus metrics.
+
+http:
+  enabled: true
+  address: 0.0.0.0:4195
+
+metrics:
+  prometheus: {}
+
+input:
+  http_server:
+    path: /ingest
+    allowed_verbs: [ POST ]
+    timeout: 10s
+
+pipeline:
+  processors:
+    # Require JSON
+    - bloblang: |
+        root = this
+    - catch:
+        - log:
+            level: ERROR
+            message: "Invalid JSON received"
+        - mapping: |
+            root = {
+              "error": "invalid_json",
+              "raw": content().string(),
+              "received_at": now()
+            }
+        - output:
+            kafka:
+              addresses: [ "kafka:9092" ]
+              topic: "ingest-dlq"
+        - mapping: 'root = deleted()' # stop processing
+
+    # Basic schema-ish validation & normalization
+    - mapping: |
+        root = this
+        root.received_at = now()
+        root.event_id = this.event_id.or(uuid_v4())
+        root.user_id = this.user_id.or("")
+        root.type = this.type.or("unknown")
+
+    # Drop obviously bad events to DLQ
+    - switch:
+        cases:
+          - check: 'this.user_id == "" || this.type == "unknown"'
+            processors:
+              - log:
+                  level: WARN
+                  message: 'Validation failed event_id=${! json("event_id") }'
+              - mapping: |
+                  root = {
+                    "error": "validation_failed",
+                    "event": this,
+                    "received_at": now()
+                  }
+              - output:
+                  kafka:
+                    addresses: [ "kafka:9092" ]
+                    topic: "ingest-dlq"
+              - mapping: 'root = deleted()'
+
+    # Dedupe using a memory cache (best-effort, short window)
+    - cache:
+        resource: dedupe
+        operator: add
+        key: '${! json("event_id") }'
+        value: "1"
+        ttl: 10m
+
+    # If already seen, drop it
+    - cache:
+        resource: dedupe
+        operator: get
+        key: '${! json("event_id") }'
+    - switch:
+        cases:
+          - check: 'content().string() == "1"'
+            processors:
+              - log:
+                  level: INFO
+                  message: 'Duplicate dropped event_id=${! json("event_id") }'
+              - mapping: 'root = deleted()'
+
+output:
+  kafka:
+    addresses: [ "kafka:9092" ]
+    topic: "ingested-events"
+
+cache_resources:
+  - label: dedupe
+    memory:
+      default_ttl: 10m

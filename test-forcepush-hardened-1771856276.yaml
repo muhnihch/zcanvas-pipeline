@@ -1,0 +1,7 @@
+input:
+  generate:
+    count: 1
+    interval: 1s
+    mapping: root = {"msg":"force-push-hardened"}
+output:
+  stdout: {}

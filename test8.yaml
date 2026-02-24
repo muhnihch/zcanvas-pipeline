@@ -1,0 +1,11 @@
+input:
+  stdin: {}
+
+pipeline:
+  processors:
+    - bloblang: |
+        root = content().string().uppercase()
+
+output:
+  stdout:
+    codec: lines

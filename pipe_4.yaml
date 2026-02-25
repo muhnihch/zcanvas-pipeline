@@ -1,0 +1,12 @@
+input:
+  stdin: {}
+
+pipeline:
+  processors:
+    - mapping: |
+        root = this
+        root.processed_at = now()
+
+output:
+  stdout:
+    codec: lines	
